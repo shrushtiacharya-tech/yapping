@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>About Yapping 💬</title>
+  <meta name="description" content="Learn about Yapping, the anonymous chat platform to meet strangers safely and have fun.">
+  <meta name="keywords" content="Yapping, about, anonymous chat, meet strangers, chat safely, online friends, cyber friends">
+  <style>
+    body { margin:0; background:black; color:white; font-family:Arial,sans-serif; display:flex; flex-direction:column; align-items:center; padding:20px; overflow-x:hidden; }
+    header { color:#32A9E0; font-size:36px; margin-bottom:10px; text-align:center; position:relative; z-index:10; }
+    nav { text-align:center; margin-bottom:20px; position:relative; z-index:10; }
+    nav a { color:#F77F82; text-decoration:none; margin:0 10px; font-size:16px; }
+    nav a:hover { text-decoration:underline; }
+
+    .content { max-width:800px; width:90%; background:#111; padding:20px; border-radius:10px; margin-bottom:30px; position:relative; z-index:10; }
+    .content h2 { color:#32A9E0; margin-bottom:10px; }
+    .content p { color:#ccc; line-height:1.6; margin-bottom:15px; }
+
+    footer { text-align:center; margin-top:20px; font-size:12px; color:#aaa; position:relative; z-index:10; }
+    footer a { color:#F77F82; text-decoration:none; margin:0 5px; }
+
+    .floating-emojis { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:hidden; z-index:0; }
+    .floating-emojis span { position:absolute; font-size:24px; opacity:0.8; animation:float 12s linear infinite; }
+    @keyframes float {0%{transform:translateY(100vh) translateX(0) rotate(0deg); opacity:0.6}50%{opacity:1}100%{transform:translateY(-10vh) translateX(50px) rotate(360deg); opacity:0.6}}
+  </style>
+</head>
+<body>
+
+<header>About Yapping 💬</header>
+
+<nav>
+  <a href="index.html">Home</a>
+  <a href="blog.html">Blog</a>
+  <a href="about.html">About</a>
+  <a href="terms.html">Terms</a>
+  <a href="privacy.html">Privacy</a>
+  <a href="contact.html">Contact</a>
+</nav>
+
+<div class="content">
+  <h2>Our Mission</h2>
+  <p>Yapping is designed to connect people anonymously. Our goal is to provide a fun, safe, and engaging platform where strangers can chat freely without any pressure. 💬✨</p>
+
+  <h2>Why Yapping?</h2>
+  <p>Unlike traditional social media, Yapping keeps your identity safe. You can meet new people, share stories, or just have fun conversations without revealing personal information. 🌸</p>
+
+  <h2>Our Features</h2>
+  <ul>
+    <li>Anonymous chat with strangers 💖</li>
+    <li>Next / Skip buttons to switch chats 🔄</li>
+    <li>Block or report unsafe users 🚨</li>
+    <li>Fun emojis and interactive UI 🌟</li>
+    <li>Mobile-friendly and responsive 📱</li>
+  </ul>
+
+  <h2>Our Vision</h2>
+  <p>We want everyone to have a positive chatting experience. Yapping encourages kindness, fun, and safe interactions across the globe. 🌍💬</p>
+</div>
+
+<footer>
+  <a href="blog.html">Blog</a> |
+  <a href="terms.html">Terms</a> |
+  <a href="privacy.html">Privacy</a> |
+  <a href="contact.html">Contact</a>
+</footer>
+
+<!-- Floating Emojis -->
+<div class="floating-emojis">
+  <span style="left:5%; animation-duration:12s;">💖</span>
+  <span style="left:20%; animation-duration:15s;">🌸</span>
+  <span style="left:40%; animation-duration:10s;">✨</span>
+  <span style="left:60%; animation-duration:18s;">😂</span>
+  <span style="left:80%; animation-duration:14s;">💬</span>
+</div>
+
+<!-- Sparkle cursor -->
+<script>
+document.addEventListener("mousemove", e=>{
+  let sparkle=document.createElement("div");
+  sparkle.innerText="✨";
+  sparkle.style.position="absolute";
+  sparkle.style.left=e.pageX+"px";
+  sparkle.style.top=e.pageY+"px";
+  sparkle.style.fontSize="16px";
+  sparkle.style.pointerEvents="none";
+  sparkle.style.zIndex="9999";
+  document.body.appendChild(sparkle);
+  setTimeout(()=>{ sparkle.remove(); },800);
+});
+</script>
+
+</body>
+</html>
