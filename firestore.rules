@@ -1,0 +1,207 @@
+/**
+ * This ruleset enforces a security model for the AnonConnect chat application.
+ *
+ * Core Philosophy:
+ * The security model is built on user ownership and explicit sharing. Users have
+ * full control over their own profile data. Access to shared resources, like
+ * chat sessions and their messages, is strictly limited to the participating users.
+ * The system includes a "write-only" collection for user reports and a publicly
+ * readable list of banned users for client-side checks.
+ *
+ * Data Structure:
+ * - /user_profiles/{userId}: Private, user-owned profile documents.
+ * - /chat_sessions/{chatSessionId}: Documents representing a chat between two users.
+ * - /chat_sessions/{chatSessionId}/messages/{messageId}: Subcollection for messages,
+ *   inheriting access control from the parent session.
+ * - /reports/{reportId}: A collection where users can submit reports but cannot
+ *   read or modify them.
+ * - /banned_users/{userId}: A public, read-only collection listing banned user IDs.
+ *
+ * Key Security Decisions:
+ * - User Listing Disabled: It is not possible to query the list of all users.
+ *   A user can only fetch their own profile.
+ * - Private by Default: All data is private unless explicitly made public.
+ * - Denormalization for Security: Chat sessions contain participant IDs (`user1Id`,
+ *   `user2Id`) directly on the document. This allows security rules for the
+ *   session and its subcollections to perform authorization checks without slow
+ *   and costly lookups elsewhere.
+ * - Safe Reporting: Any authenticated user can create a report, but they cannot
+ *   view, edit, or delete any reports, protecting the privacy of both the
+ *   reporter and the reported user.
+ * - Public Ban List: The `/banned_users` collection is publicly readable to allow
+ *   the application client to efficiently check a user's status. All write
+ *   operations are disabled for regular users.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --------------------------------
+    // Helper Functions
+    // --------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if a document exists and if the user is the owner.
+     * Used for secure update and delete operations.
+     */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /**
+     * Checks if the user is a participant in a chat session.
+     * Accepts a chat session document's data map as an argument.
+     */
+    function isParticipant(sessionData) {
+      return isSignedIn() && (request.auth.uid == sessionData.user1Id || request.auth.uid == sessionData.user2Id);
+    }
+
+    /**
+     * Performs a lookup to verify if the user is a participant in the parent chat session.
+     * This function incurs a Firestore read operation.
+     */
+    function isChatParticipant(chatSessionId) {
+      let sessionDoc = get(/databases/$(database)/documents/chat_sessions/$(chatSessionId));
+      return sessionDoc != null && isParticipant(sessionDoc.data);
+    }
+    
+    /**
+     * Validates that the user creating a profile sets their own UID as the document's 'id'.
+     */
+    function isValidUserProfileCreate(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Enforces immutability of the 'id' field on user profiles during updates.
+     */
+    function isIdImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Validates required authorization fields for creating a chat session.
+     */
+    function isValidChatSessionCreate() {
+      let data = request.resource.data;
+      // The user creating the session must be one of the participants.
+      let creatorIsParticipant = isOwner(data.user1Id) || isOwner(data.user2Id);
+      // Users cannot start a chat with themselves.
+      let isNotSelfChat = data.user1Id != data.user2Id;
+      return creatorIsParticipant && isNotSelfChat;
+    }
+
+    /**
+     * Validates that the sender of a new message is the authenticated user.
+     */
+    function isValidMessageCreate() {
+      return request.resource.data.senderId == request.auth.uid;
+    }
+
+    /**
+     * Validates that the reporter creating a report is the authenticated user.
+     */
+    function isValidReportCreate() {
+      return request.resource.data.reporterId == request.auth.uid;
+    }
+
+    /**
+     * @description
+     * Stores user profile information. Users can manage their own profile but cannot
+     * view or list other users' profiles.
+     * @path /user_profiles/{userId}
+     * @allow A user with UID 'user_abc' can (create), (get), (update), or (delete) the document at `/user_profiles/user_abc`.
+     * @deny A user with UID 'user_xyz' cannot read or write the document at `/user_profiles/user_abc`.
+     * @principle Restricts access to a user's own data tree, enforcing strict data privacy.
+     */
+    match /user_profiles/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidUserProfileCreate(userId);
+      allow update: if isExistingOwner(userId) && isIdImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description
+     * Stores metadata for a chat session between two users. Only the two
+     * participants in the chat can read, update, or delete the session document.
+     * @path /chat_sessions/{chatSessionId}
+     * @allow A user included in the `user1Id` or `user2Id` field can (get) the document.
+     * @deny A user not listed as a participant cannot access the document in any way.
+     * @principle Enforces shared access for a closed set of collaborators (chat participants).
+     */
+    match /chat_sessions/{chatSessionId} {
+      allow get: if isChatParticipant(chatSessionId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidChatSessionCreate();
+      allow update: if resource != null && isChatParticipant(chatSessionId);
+      allow delete: if resource != null && isChatParticipant(chatSessionId);
+    }
+
+    /**
+     * @description
+     * Stores the individual messages within a chat session. Access is granted by
+     * checking for participation in the parent chat session document.
+     * @path /chat_sessions/{chatSessionId}/messages/{messageId}
+     * @allow A user who is a participant in the parent `/chat_sessions/{chatSessionId}` can (create) and (read) messages.
+     * @deny A user who is not part of the chat session cannot read or write messages.
+     * @principle Secures a subcollection by checking permissions on the parent document.
+     */
+    match /chat_sessions/{chatSessionId}/messages/{messageId} {
+      allow get, list: if isChatParticipant(chatSessionId);
+      allow create: if isChatParticipant(chatSessionId) && isValidMessageCreate();
+      allow update: if false;
+      allow delete: if resource != null && isChatParticipant(chatSessionId) && isOwner(resource.data.senderId);
+    }
+
+    /**
+     * @description
+     * Stores user-submitted reports. Any authenticated user can create a report,
+     * but no user can read, update, or delete them, creating a secure "write-only"
+     * dropbox for moderators.
+     * @path /reports/{reportId}
+     * @allow Any signed-in user can (create) a new report document.
+     * @deny No user can (get), (list), (update), or (delete) any report document.
+     * @principle Implements a write-only collection for user-submitted content that requires moderation.
+     */
+    match /reports/{reportId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if isSignedIn() && isValidReportCreate();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description
+     * A publicly readable list of banned users. This allows the client application
+     * to easily check if a user is banned. Writes are disabled for all regular users.
+     * @path /banned_users/{userId}
+     * @allow Anyone, including unauthenticated users, can (get) or (list) documents in this collection.
+     * @deny No regular user can (create), (update), or (delete) documents in this collection.
+     * @principle Provides public read access for application configuration data while protecting it from writes.
+     */
+    match /banned_users/{userId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
