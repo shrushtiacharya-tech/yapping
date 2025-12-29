@@ -1,0 +1,266 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile in the AnonConnect application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "interests": {
+          "type": "array",
+          "description": "A list of user interests, represented as tags.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lastActive": {
+          "type": "string",
+          "description": "The date and time the user was last active.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "interests"
+      ]
+    },
+    "ChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Represents a single chat message exchanged between users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ChatMessage entity."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to UserProfile. The ID of the user who sent the message. (Relationship: UserProfile 1:N ChatMessage)"
+        },
+        "recipientId": {
+          "type": "string",
+          "description": "Reference to UserProfile. The ID of the user who received the message. (Relationship: UserProfile 1:N ChatMessage)"
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the message."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time the message was sent.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "senderId",
+        "recipientId",
+        "content",
+        "timestamp"
+      ]
+    },
+    "ChatSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatSession",
+      "type": "object",
+      "description": "Represents a single chat session between two users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ChatSession entity."
+        },
+        "user1Id": {
+          "type": "string",
+          "description": "Reference to UserProfile. The ID of the first user in the chat session. (Relationship: UserProfile 1:N ChatSession)"
+        },
+        "user2Id": {
+          "type": "string",
+          "description": "Reference to UserProfile. The ID of the second user in the chat session. (Relationship: UserProfile 1:N ChatSession)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The date and time the chat session started.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The date and time the chat session ended.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "user1Id",
+        "user2Id",
+        "startTime"
+      ]
+    },
+    "Report": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Report",
+      "type": "object",
+      "description": "Represents a report filed against a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Report entity."
+        },
+        "reporterId": {
+          "type": "string",
+          "description": "Reference to UserProfile. The ID of the user who filed the report. (Relationship: UserProfile 1:N Report)"
+        },
+        "reportedUserId": {
+          "type": "string",
+          "description": "Reference to UserProfile. The ID of the user who was reported. (Relationship: UserProfile 1:N Report)"
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reason for the report."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time the report was filed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "reporterId",
+        "reportedUserId",
+        "reason",
+        "timestamp"
+      ]
+    },
+    "BannedUser": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BannedUser",
+      "type": "object",
+      "description": "Represents a user who has been banned from the platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the BannedUser entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. The ID of the banned user. (Relationship: UserProfile 1:1 BannedUser)"
+        },
+        "banReason": {
+          "type": "string",
+          "description": "The reason for the ban."
+        },
+        "banDate": {
+          "type": "string",
+          "description": "The date the user was banned.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "banReason",
+        "banDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/user_profiles/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information.  The `userId` corresponds to the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chat_sessions/{chatSessionId}",
+        "definition": {
+          "entityName": "ChatSession",
+          "schema": {
+            "$ref": "#/backend/entities/ChatSession"
+          },
+          "description": "Stores metadata for chat sessions between two users.",
+          "params": [
+            {
+              "name": "chatSessionId",
+              "description": "The unique identifier for the chat session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chat_sessions/{chatSessionId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/ChatMessage"
+          },
+          "description": "Stores individual chat messages within a specific chat session. Includes denormalized `user1Id` and `user2Id` from parent `ChatSession` for authorization independence.",
+          "params": [
+            {
+              "name": "chatSessionId",
+              "description": "The unique identifier for the chat session."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier for the chat message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": {
+            "$ref": "#/backend/entities/Report"
+          },
+          "description": "Stores reports filed against users.",
+          "params": [
+            {
+              "name": "reportId",
+              "description": "The unique identifier for the report."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/banned_users/{userId}",
+        "definition": {
+          "entityName": "BannedUser",
+          "schema": {
+            "$ref": "#/backend/entities/BannedUser"
+          },
+          "description": "Stores a list of banned users, using the User's ID as the document ID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the banned user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the core features of AnonConnect, including anonymous video chat, text chat, interest-based matching, reporting, and banning. The structure prioritizes authorization independence by denormalizing relevant data, ensuring security rules can be applied efficiently without relying on hierarchical `get()` calls.\n\n1.  **User Profiles:** Stored in `/user_profiles/{userId}`. This collection holds user profile data.  There are no subcollections.  User profiles are critical for identity and interest-based matching.\n\n2.  **Chat Sessions:** Stored in `/chat_sessions/{chatSessionId}`.  A `ChatSession` document holds the metadata for a given session.  This collection supports listing active sessions and querying sessions by user IDs.\n\n3.  **Chat Messages:** Stored in `/chat_sessions/{chatSessionId}/messages/{messageId}`. This subcollection of `chat_sessions` contains individual chat messages.  Authorization is based on membership in the parent `chat_session` document, ensuring that only participants can read/write messages. The `chatSessionId` parameter enables efficient querying of messages within a specific session. The `senderId` and `recipientId` properties are indexed to facilitate message retrieval for a user.\n\n4. **Reports:** Stored in `/reports/{reportId}`. This collection stores reports filed against users.  Authorization rules can ensure that only authenticated users can create reports and that moderators can read them. \n\n5.  **Banned Users:** Stored in `/banned_users/{userId}`. This collection stores a list of banned users. Existence of a document in this collection is sufficient to indicate a banned user, making the security rules simple and efficient. Existence over content is used here.\n\n**Authorization Independence:**\n\n*   **Chat Messages:** The `ChatSession` includes the `user1Id` and `user2Id` this information is automatically inherited by subcollection `messages` providing the information to allow/deny read/write operations. This denormalization prevents security rules from having to traverse the database.\n\n**QAPs Support:**\n\n*   **List Operations:** The segregation of data into dedicated collections (e.g., `/user_profiles`, `/chat_sessions`) ensures that list operations can be performed securely, with rules tailored to each collection's specific access requirements.  The use of path-based ownership (`/user_profiles/{userId}`) allows for efficient retrieval of user-specific data.\n\nThis structure promotes security, scalability, and debuggability by adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs."
+  }
+}

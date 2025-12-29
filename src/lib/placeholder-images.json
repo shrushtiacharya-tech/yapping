@@ -1,0 +1,106 @@
+{
+  "placeholderImages": [
+    {
+      "id": "local-user-video",
+      "description": "Placeholder for the local user's video stream.",
+      "imageUrl": "https://images.unsplash.com/photo-1626584017989-2d2ec0d09665?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGVyc29uJTIwc2VsZmllfGVufDB8fHx8MTc2NjQyODAxM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person selfie"
+    },
+    {
+      "id": "remote-user-video-1",
+      "description": "Placeholder for a remote user's video stream.",
+      "imageUrl": "https://images.unsplash.com/photo-1531123414780-f74242c2b052?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGVyc29uJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzY2MzkxMjAwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "remote-user-video-2",
+      "description": "Placeholder for another remote user's video stream.",
+      "imageUrl": "https://images.unsplash.com/photo-1563178406-4cdc2923acbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8d29tYW4lMjBzbWlsaW5nfGVufDB8fHx8MTc2NjM2MjAwM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "remote-user-video-3",
+      "description": "Placeholder for a third remote user's video stream.",
+      "imageUrl": "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtYW4lMjBnbGFzc2VzfGVufDB8fHx8MTc2NjQwNzg1Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man glasses"
+    },
+    {
+      "id": "avatar-1",
+      "description": "Avatar for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1621877256129-4a4f456a9e51?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGZhY2V8ZW58MHx8fHwxNzY2NDA3NTA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract face"
+    },
+    {
+      "id": "avatar-2",
+      "description": "Avatar for another user.",
+      "imageUrl": "https://images.unsplash.com/photo-1731275668160-f18f97c6faac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjb2xvcmZ1bCUyMHBhdHRlcm58ZW58MHx8fHwxNzY2NDE0NTQwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "colorful pattern"
+    },
+    {
+      "id": "avatar-3",
+      "description": "Avatar for a third user.",
+      "imageUrl": "https://images.unsplash.com/photo-1494891848038-7bd202a2afeb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxnZW9tZXRyaWMlMjBzaGFwZXxlbnwwfHx8fDE3NjY0MzQwMTh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "geometric shape"
+    },
+    {
+      "id": "blog-4",
+      "description": "Blog post image.",
+      "imageUrl": "https://images.unsplash.com/photo-1589176600546-989752940b4b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxpbnRlcm5ldCUyMGN1bHR1cmV8ZW58MHx8fHwxNzY2NDM1NTE3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "internet culture"
+    },
+    {
+      "id": "blog-5",
+      "description": "Blog post image.",
+      "imageUrl": "https://images.unsplash.com/photo-1611410464794-ab90b4dfe082?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y29udmVyc2F0aW9uJTIwYnViYmxlfGVufDB8fHx8MTc2NjQzNTUxN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "conversation bubble"
+    },
+    {
+      "id": "blog-6",
+      "description": "Blog post image.",
+      "imageUrl": "https://images.unsplash.com/photo-1693473851032-36335b5a1335?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmcmllbmRzaGlwJTIwYnJhY2VsZXRzfGVufDB8fHx8MTc2NjQzNTUxN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "friendship bracelets"
+    },
+    {
+      "id": "blog-7",
+      "description": "Blog post image.",
+      "imageUrl": "https://images.unsplash.com/photo-1496449903678-68ddcb189a24?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxuZW9uJTIwc2lnbnxlbnwwfHx8fDE3NjY0MTA3OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "neon sign"
+    },
+    {
+      "id": "blog-8",
+      "description": "Blog post image.",
+      "imageUrl": "https://images.unsplash.com/photo-1554921027-b91f0beeb07d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx2aW50YWdlJTIwY29tcHV0ZXJ8ZW58MHx8fHwxNzY2NDIyOTcxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vintage computer"
+    },
+    {
+      "id": "blog-9",
+      "description": "Blog post image.",
+      "imageUrl": "https://images.unsplash.com/photo-1604178737169-001c71f9d6b8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwcml2YWN5JTIwbG9ja3xlbnwwfHx8fDE3NjY0MzU1MTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "privacy lock"
+    },
+    {
+      "id": "blog-10",
+      "description": "Blog post image.",
+      "imageUrl": "https://images.unsplash.com/photo-1714426533679-b0caf47ad32e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxnZW4teiUyMGZhc2hpb258ZW58MHx8fHwxNzY2NDM1NTE3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "gen-z fashion"
+    },
+    {
+      "id": "blog-11",
+      "description": "Blog post image.",
+      "imageUrl": "https://images.unsplash.com/photo-1488998287214-1e668a8e0dc4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxvbmxpbmUlMjBjaGF0fGVufDB8fHx8MTc2NjQzNTUxN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "online chat"
+    },
+    {
+      "id": "blog-12",
+      "description": "Blog post image.",
+      "imageUrl": "https://picsum.photos/seed/blog12/600/400",
+      "imageHint": "respectful conversation"
+    },
+    {
+      "id": "blog-13",
+      "description": "Blog post image.",
+      "imageUrl": "https://picsum.photos/seed/blog13/600/400",
+      "imageHint": "meme culture"
+    }
+  ]
+}
