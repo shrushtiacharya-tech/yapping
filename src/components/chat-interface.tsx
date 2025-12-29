@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { supabase } from "@/lib/supabase";
+import  getSupabase  from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 
 type Message = {
@@ -12,6 +12,9 @@ type Message = {
 };
 
 export default function ChatInterface() {
+    const supabase = getSupabase();
+  if (!supabase) return null;
+
   const [myId] = useState(uuidv4());
   const [matchedId, setMatchedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
