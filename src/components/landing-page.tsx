@@ -118,9 +118,63 @@ export default function LandingPage() {
       </section>
 
       {/* 🖤 FOOTER */}
-      <footer className="py-10 text-center text-gray-500 text-sm">
-        made with 💙 for overthinkers · yapping.in
-      </footer>
+<footer className="border-t border-white/10 bg-black">
+  <div className="max-w-6xl mx-auto px-6 py-12 grid gap-10 md:grid-cols-3 text-sm">
+
+    {/* Brand */}
+    <div className="flex flex-col gap-3">
+      <h3 className="text-lg font-bold text-white">
+        yapping<span className="text-pink-500">.in</span>
+      </h3>
+      <p className="text-gray-400 max-w-xs">
+        No pressure. No judgement.  
+        Just late-night yaps and human vibes 💬
+      </p>
+    </div>
+
+    {/* Links */}
+    <div className="grid grid-cols-2 gap-8">
+      <div>
+        <h4 className="mb-3 font-semibold text-white/80">Company</h4>
+        <ul className="space-y-2 text-gray-400">
+          <li>
+            <Link href="/about" className="hover:text-blue-400 transition">
+              About
+            </Link>
+          </li>
+          <li>
+            <Link href="/blog" className="hover:text-blue-400 transition">
+              Blog
+            </Link>
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 className="mb-3 font-semibold text-white/80">Legal</h4>
+        <ul className="space-y-2 text-gray-400">
+          <li>
+            <Link href="/terms" className="hover:text-pink-400 transition">
+              Terms
+            </Link>
+          </li>
+          <li>
+            <Link href="/privacy" className="hover:text-pink-400 transition">
+              Privacy
+            </Link>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    {/* Copyright */}
+    <div className="flex items-end md:justify-end text-gray-500">
+      © {new Date().getFullYear()} yapping.in  
+      <br />
+      built for overthinkers 💙
+    </div>
+  </div>
+</footer>
     </main>
   );
 }
