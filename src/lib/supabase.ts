@@ -3,7 +3,6 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 let supabase: SupabaseClient | null = null;
 
 export function getSupabaseClient() {
-  // ⛔ Prevent Supabase from running during build / server
   if (typeof window === "undefined") {
     return null;
   }
