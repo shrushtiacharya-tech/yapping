@@ -1,13 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-let supabase: ReturnType<typeof createClient> | null = null;
+let supabase: SupabaseClient | null = null;
 
-export default function ChatInterface() {
-  const supabase = getSupabase();
-  if (!supabase) return null;
-}
+export function getSupabaseClient() {
+  // ⛔ Prevent Supabase from running during build / server
   if (typeof window === "undefined") {
-    // ⛔ Prevent Supabase from running during build / server
     return null;
   }
 
