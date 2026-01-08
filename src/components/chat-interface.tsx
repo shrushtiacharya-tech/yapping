@@ -1,227 +1,367 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { getSupabaseClient } from "@/lib/supabase";
-import { v4 as uuidv4 } from "uuid";
+import { motion, AnimatePresence } from "framer-motion";
+import { getSocket, disconnectSocket } from "@/lib/socket";
+import { ArrowRight, X, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type Message = {
   id: string;
-  sender: string;
   text: string;
-  created_at: string;
+  senderId: string;
+  timestamp: number;
 };
 
 export default function ChatInterface() {
-const supabase = getSupabaseClient();
-  if (!supabase) return null;
-
-  const [myId] = useState(uuidv4());
-  const [matchedId, setMatchedId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [socket, setSocket] = useState<ReturnType<typeof getSocket> | null>(null);
+  const [status, setStatus] = useState<"connecting" | "matching" | "matched" | "disconnected">("connecting");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [text, setText] = useState("");
-  const [status, setStatus] = useState("Finding a stranger...");
+  const [inputText, setInputText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [mySocketId, setMySocketId] = useState<string | null>(null);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Match logic
-  async function tryMatch() {
-    if (matchedId) return;
-
-    const { data } = await supabase
-      .from("waiting_users")
-      .select("*")
-      .neq("id", myId)
-      .order("joined_at", { ascending: true })
-      .limit(1);
-
-    if (data && data.length > 0) {
-      const other = data[0];
-
-      await supabase.from("waiting_users").delete().eq("id", other.id);
-      await supabase.from("waiting_users").delete().eq("id", myId);
-
-      setMatchedId(other.id);
-      setStatus("Connected 🎉");
-
-      subscribeMessages(other.id);
-      subscribeTyping(other.id);
-    } else {
-      await supabase.from("waiting_users").upsert({ id: myId });
-    }
-  }
-
+  // Mount check for SSR
   useEffect(() => {
-    tryMatch();
-    const interval = setInterval(tryMatch, 1000);
-    return () => clearInterval(interval);
-  }, [matchedId]);
+    setMounted(true);
+  }, []);
 
-  // Subscribe messages
-  const subscribeMessages = (otherId: string) => {
-    supabase
-      .channel(`chat-${otherId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        (payload: any) => {
-          setMessages((prev) => [...prev, payload.new]);
-        }
-      )
-      .subscribe();
-  };
+  // Initialize socket connection
+  useEffect(() => {
+    if (!mounted) return;
 
-  // Subscribe typing events
-  const subscribeTyping = (otherId: string) => {
-    supabase
-      .channel(`typing-${otherId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "typing_events" },
-        (payload: any) => {
-          if (payload.new.sender === otherId) {
-            setOtherTyping(payload.new.is_typing);
-          }
-        }
-      )
-      .subscribe();
+    const socketInstance = getSocket();
+    setSocket(socketInstance);
+    setMySocketId(socketInstance.id);
+
+    // Connection events
+    socketInstance.on("connect", () => {
+      console.log("✅ Connected to server");
+      setStatus("matching");
+      setSocket(socketInstance);
+      setMySocketId(socketInstance.id);
+      
+      // Join matching queue
+      socketInstance.emit("join");
+    });
+
+    socketInstance.on("disconnect", () => {
+      console.log("❌ Disconnected from server");
+      setStatus("disconnected");
+    });
+
+    // Matching events
+    socketInstance.on("waiting", () => {
+      console.log("⏳ Waiting for match...");
+      setStatus("matching");
+    });
+
+    socketInstance.on("matched", (data: { roomId: string }) => {
+      console.log("💚 Matched! Room:", data.roomId);
+      setRoomId(data.roomId);
+      setStatus("matched");
+      setMessages([]);
+    });
+
+    socketInstance.on("partner_disconnected", () => {
+      console.log("👋 Partner disconnected");
+      setStatus("matching");
+      setMessages([]);
+      setRoomId(null);
+      setOtherTyping(false);
+      
+      // Instantly try to find new match (no delay)
+      socketInstance.emit("join");
+    });
+
+    // Message events
+    socketInstance.on("message", (data: { text: string; senderId: string }) => {
+      console.log("📩 Message received:", data);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          text: data.text,
+          senderId: data.senderId,
+          timestamp: Date.now(),
+        },
+      ]);
+    });
+
+    // Typing events
+    socketInstance.on("typing", () => {
+      setOtherTyping(true);
+    });
+
+    socketInstance.on("stop_typing", () => {
+      setOtherTyping(false);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      socketInstance.off("connect");
+      socketInstance.off("disconnect");
+      socketInstance.off("waiting");
+      socketInstance.off("matched");
+      socketInstance.off("partner_disconnected");
+      socketInstance.off("message");
+      socketInstance.off("typing");
+      socketInstance.off("stop_typing");
+      disconnectSocket();
+    };
+  }, [mounted]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Handle typing indicator
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputText(value);
+
+    if (!socket || !roomId || status !== "matched") return;
+
+    if (!isTyping && value.trim()) {
+      setIsTyping(true);
+      socket.emit("typing", { roomId });
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout to stop typing
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socket && roomId) {
+        setIsTyping(false);
+        socket.emit("stop_typing", { roomId });
+      }
+    }, 1000);
   };
 
   // Send message
-  const sendMessage = async () => {
-    if (!text.trim() || !matchedId) return;
+  const sendMessage = () => {
+    if (!socket || !roomId || !inputText.trim() || status !== "matched") return;
 
-    await supabase.from("messages").insert({
-      id: uuidv4(),
-      room_id: [myId, matchedId].sort().join("_"),
-      sender: myId,
-      text,
-      created_at: new Date().toISOString(),
-    });
+    const text = inputText.trim();
+    
+    // Add message to local state immediately (optimistic update)
+    const tempId = `temp-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        text,
+        senderId: socket.id!,
+        timestamp: Date.now(),
+      },
+    ]);
 
-    setText("");
+    // Send to server
+    socket.emit("message", { text, roomId });
+
+    // Clear input and stop typing
+    setInputText("");
+    setIsTyping(false);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    socket.emit("stop_typing", { roomId });
+
+    // Focus input again
+    inputRef.current?.focus();
   };
 
-  // Send typing event
-  const sendTyping = async () => {
-    if (!matchedId) return;
-    await supabase.from("typing_events").insert({
-      id: uuidv4(),
-      room_id: [myId, matchedId].sort().join("_"),
-      sender: myId,
-      is_typing: true,
-      created_at: new Date().toISOString(),
-    });
-  };
+  // Handle Next button (disconnect and rematch)
+  const handleNext = () => {
+    if (!socket) return;
 
-  // Scroll to bottom
-  useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages]);
-
-  // Next user
-  const nextUser = () => {
-    setMatchedId(null);
+    socket.emit("next");
     setMessages([]);
-    setStatus("Finding a new stranger...");
+    setStatus("matching");
+    setRoomId(null);
+    setOtherTyping(false);
+    setInputText("");
   };
 
-  // End chat
-  const endChat = () => {
-    setMatchedId(null);
+  // Handle End button (disconnect completely)
+  const handleEnd = () => {
+    if (socket) {
+      socket.disconnect();
+      disconnectSocket();
+    }
+    setStatus("disconnected");
     setMessages([]);
-    setStatus("Chat ended 😢");
+    setRoomId(null);
+    setOtherTyping(false);
   };
 
-  // Report (mock)
-  const reportUser = () => alert("User reported! 🚨");
+  // Handle Enter key
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
-  // Emoji picker
-  const addEmoji = (emoji: string) => setText((prev) => prev + emoji);
+  if (!mounted) {
+    return null;
+  }
 
-  return (
-    <div className="flex flex-col h-screen max-w-md mx-auto bg-black border rounded-lg text-white">
-      {/* Header */}
-      <div className="flex justify-between items-center p-3 border-b border-gray-700 bg-[#1A1A1D]">
-        <h2 className="font-bold text-lg">{status}</h2>
-        {matchedId && (
-          <div className="flex gap-2">
-            <button
-              onClick={nextUser}
-              className="px-2 py-1 rounded bg-[#F77F82] text-black text-sm"
-            >
-              Next
-            </button>
-            <button
-              onClick={endChat}
-              className="px-2 py-1 rounded bg-[#32A9E0] text-black text-sm"
-            >
-              End
-            </button>
-            <button
-              onClick={reportUser}
-              className="px-2 py-1 rounded bg-red-500 text-black text-sm"
-            >
-              🚨
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Chat messages */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-2 flex flex-col bg-[#0D0D0D]"
-      >
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`p-2 rounded text-sm max-w-[70%] ${
-              m.sender === myId
-                ? "bg-[#32A9E0] text-black self-end rounded-br-none"
-                : "bg-[#F77F82] text-black self-start rounded-bl-none"
-            }`}
+  // Render matching/loading state
+  if (status === "connecting" || status === "matching") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black text-white">
+        <div className="text-center space-y-6">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="mx-auto w-16 h-16"
           >
-            {m.text}
-          </div>
-        ))}
-        {otherTyping && <p className="text-xs text-gray-400">Typing...</p>}
+            <Loader2 className="w-16 h-16 text-[#32A9E0]" />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-2"
+          >
+            <h2 className="text-2xl font-bold">
+              {status === "connecting" ? "Connecting..." : "Finding someone to yap with..."}
+            </h2>
+            <p className="text-gray-400">This might take a moment ✨</p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render disconnected state
+  if (status === "disconnected") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black text-white">
+        <div className="text-center space-y-6">
+          <h2 className="text-2xl font-bold">Disconnected</h2>
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-[#32A9E0] hover:bg-[#32A9E0]/90 text-black"
+          >
+            Reconnect
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render chat interface
+  return (
+    <div className="flex flex-col h-screen bg-black text-white overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-[#0a0a0a]">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-[#32A9E0] animate-pulse"></div>
+          <h2 className="font-bold text-lg">Connected 💚</h2>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleNext}
+            variant="outline"
+            size="sm"
+            className="bg-[#F77F82] hover:bg-[#F77F82]/90 text-black border-0 rounded-full"
+          >
+            Next
+          </Button>
+          <Button
+            onClick={handleEnd}
+            variant="outline"
+            size="sm"
+            className="bg-[#32A9E0] hover:bg-[#32A9E0]/90 text-black border-0 rounded-full"
+          >
+            End
+          </Button>
+        </div>
       </div>
 
-      {/* Input + emoji */}
-      {matchedId && (
-        <div className="flex flex-col gap-1 p-3 border-t border-gray-700 bg-[#1A1A1D]">
-          <div className="flex gap-2">
-            <input
-              className="flex-1 border rounded px-2 py-1 bg-black text-white placeholder:text-gray-500"
-              placeholder="Type a message..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                sendTyping();
-                if (e.key === "Enter") sendMessage();
-              }}
-            />
-            <button
-              onClick={sendMessage}
-              className="bg-[#32A9E0] text-black px-3 rounded flex items-center justify-center"
-            >
-              ➤
-            </button>
-          </div>
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-black">
+        <AnimatePresence>
+          {messages.map((message) => {
+            const isMine = message.senderId === mySocketId;
+            return (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                    isMine
+                      ? "bg-[#32A9E0] text-black rounded-br-md"
+                      : "bg-[#F77F82] text-black rounded-bl-md"
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap break-words">
+                    {message.text}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
 
-          {/* Emoji picker */}
-          <div className="flex gap-2">
-            {["😀", "😂", "😍", "🥹", "😎", "🔥"].map((e) => (
-              <button key={e} onClick={() => addEmoji(e)} className="text-xl">
-                {e}
-              </button>
-            ))}
-          </div>
+        {/* Typing Indicator */}
+        {otherTyping && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex justify-start"
+          >
+            <div className="bg-gray-800 rounded-2xl rounded-bl-md px-4 py-2">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 border-t border-gray-800 bg-[#0a0a0a]">
+        <div className="flex gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputText}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message..."
+            className="flex-1 bg-gray-900 border border-gray-800 rounded-full px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#32A9E0] transition-colors"
+          />
+          <Button
+            onClick={sendMessage}
+            disabled={!inputText.trim()}
+            className="bg-[#32A9E0] hover:bg-[#32A9E0]/90 text-black rounded-full px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ArrowRight className="h-5 w-5" />
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
